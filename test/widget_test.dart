@@ -5,6 +5,6 @@ void main() {
   testWidgets('Recipe app loads successfully', (WidgetTester tester) async {
     await tester.pumpWidget(const RecipeApp());
 
-    expect(find.text('What are you\ncooking today?'), findsOneWidget);
+    expect(find.text('What are you cooking?'), findsOneWidget);
   });
 }
