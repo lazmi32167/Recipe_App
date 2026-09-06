@@ -6,8 +6,8 @@ class RecipeDetailPage extends StatefulWidget {
   final Recipe recipe;
   final bool isFavorite;
   final bool isSaved;
-  final VoidCallback onFavoriteTap;
-  final VoidCallback onSavedTap;
+  final ValueChanged<bool> onFavoriteTap;
+  final ValueChanged<bool> onSavedTap;
 
   const RecipeDetailPage({
     super.key,
@@ -47,16 +47,11 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 height: 300,
                 width: double.infinity,
                 clipBehavior: Clip.hardEdge,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F3EE),
-                ),
+                decoration: const BoxDecoration(color: Color(0xFFE8F3EE)),
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: Image.asset(
-                        recipe.imagePath,
-                        fit: BoxFit.cover,
-                      ),
+                      child: Image.asset(recipe.imagePath, fit: BoxFit.cover),
                     ),
                     Positioned(
                       top: 16,
@@ -82,7 +77,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                               setState(() {
                                 isFavorite = !isFavorite;
                               });
-                              widget.onFavoriteTap();
+                              widget.onFavoriteTap(isFavorite);
                             },
                           ),
                           const SizedBox(width: 10),
@@ -98,7 +93,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                               setState(() {
                                 isSaved = !isSaved;
                               });
-                              widget.onSavedTap();
+                              widget.onSavedTap(isSaved);
                             },
                           ),
                         ],
@@ -121,150 +116,151 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                    Center(
-                      child: Container(
-                        height: 5,
-                        width: 42,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFD9DDE2),
-                          borderRadius: BorderRadius.circular(5),
+                      Center(
+                        child: Container(
+                          height: 5,
+                          width: 42,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD9DDE2),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      recipe.title,
-                      style: const TextStyle(
-                        fontSize: 26,
-                        height: 1.1,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 18),
+                      Text(
+                        recipe.title,
+                        style: const TextStyle(
+                          fontSize: 26,
+                          height: 1.1,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _RecipeMeta(
-                          icon: Icons.star,
-                          iconColor: const Color(0xFFF2C94C),
-                          label: recipe.rating,
-                        ),
-                        const SizedBox(width: 18),
-                        _RecipeMeta(
-                          icon: Icons.access_time,
-                          iconColor: const Color(0xFF4FA58C),
-                          label: recipe.time,
-                        ),
-                        const SizedBox(width: 18),
-                        const _RecipeMeta(
-                          icon: Icons.local_fire_department,
-                          iconColor: Colors.deepOrangeAccent,
-                          label: 'Calories unavailable',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      recipe.description,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                        height: 1.4,
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _RecipeMeta(
+                            icon: Icons.star,
+                            iconColor: const Color(0xFFF2C94C),
+                            label: recipe.rating,
+                          ),
+                          const SizedBox(width: 18),
+                          _RecipeMeta(
+                            icon: Icons.access_time,
+                            iconColor: const Color(0xFF4FA58C),
+                            label: recipe.time,
+                          ),
+                          const SizedBox(width: 18),
+                          const _RecipeMeta(
+                            icon: Icons.local_fire_department,
+                            iconColor: Colors.deepOrangeAccent,
+                            label: 'Calories unavailable',
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Ingredients',
-                              style: TextStyle(
-                                fontSize: 21,
-                                fontWeight: FontWeight.bold,
+                      const SizedBox(height: 16),
+                      Text(
+                        recipe.description,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Ingredients',
+                                style: TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'How many servings?',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
+                              SizedBox(height: 4),
+                              Text(
+                                'How many servings?',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 12,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        _ServingsSelector(
-                          servings: servings,
-                          onDecrease: () {
-                            if (servings > 1) {
+                            ],
+                          ),
+                          _ServingsSelector(
+                            servings: servings,
+                            onDecrease: () {
+                              if (servings > 1) {
+                                setState(() {
+                                  servings--;
+                                });
+                              }
+                            },
+                            onIncrease: () {
                               setState(() {
-                                servings--;
+                                servings++;
                               });
-                            }
-                          },
-                          onIncrease: () {
-                            setState(() {
-                              servings++;
-                            });
-                          },
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      ...List.generate(
+                        recipe.ingredients.length,
+                        (index) => _IngredientRow(
+                          ingredient: recipe.ingredients[index],
+                          icon:
+                              _ingredientIcons[index % _ingredientIcons.length],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    ...List.generate(
-                      recipe.ingredients.length,
-                      (index) => _IngredientRow(
-                        ingredient: recipe.ingredients[index],
-                        icon: _ingredientIcons[index % _ingredientIcons.length],
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Instructions',
-                      style: TextStyle(
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Instructions',
+                        style: TextStyle(
+                          fontSize: 21,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    ...List.generate(
-                      recipe.instructions.length,
-                      (index) => _InstructionRow(
-                        number: index + 1,
-                        instruction: recipe.instructions[index],
+                      const SizedBox(height: 14),
+                      ...List.generate(
+                        recipe.instructions.length,
+                        (index) => _InstructionRow(
+                          number: index + 1,
+                          instruction: recipe.instructions[index],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Cooking mode started!'),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Cooking mode started!'),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.restaurant),
+                          label: const Text('Start Cooking'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF4FA58C),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(26),
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.restaurant),
-                        label: const Text('Start Cooking'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4FA58C),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(26),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     ],
                   ),
                 ),

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -31,7 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    if (passwordController.text.length < 6) {
+    if (passwordController.text.trim().length < 6) {
       showMessage('Password must be at least 6 characters');
       return;
     }
@@ -41,24 +42,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
+      // Create Firebase Authentication account
       final credential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim(),
       );
 
-      await credential.user?.updateDisplayName(
-        nameController.text.trim(),
-      );
+      final user = credential.user;
 
-      // AuthGate will automatically redirect the user.
-      if (mounted) {
-        Navigator.pop(context);
+      if (user != null) {
+        // Save display name in Firebase Auth
+        await user.updateDisplayName(
+          nameController.text.trim(),
+        );
+
+        // Save user information in Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .set({
+          'name': nameController.text.trim(),
+          'email': emailController.text.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       }
+
+      showMessage('Registration successful!');
+
+      // AuthGate automatically redirects to MainNavigationScreen
     } on FirebaseAuthException catch (e) {
       showMessage(e.message ?? 'Registration failed');
     } catch (e) {
-      showMessage('Something went wrong');
+      showMessage('Something went wrong: $e');
     }
 
     if (mounted) {
@@ -70,7 +86,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+      ),
     );
   }
 
@@ -81,9 +99,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: const Text('Create Account'),
         backgroundColor: Colors.transparent,
       ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
+
           child: Column(
             children: [
               const Icon(
@@ -142,12 +162,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 50,
+
                 child: ElevatedButton(
                   onPressed: isLoading ? null : register,
+
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4FA58C),
                     foregroundColor: Colors.white,
                   ),
+
                   child: isLoading
                       ? const CircularProgressIndicator(
                           color: Colors.white,

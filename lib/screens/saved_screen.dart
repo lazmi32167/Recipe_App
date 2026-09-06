@@ -8,8 +8,8 @@ class SavedScreen extends StatelessWidget {
   final List<Recipe> recipes;
   final Set<String> favoriteRecipes;
   final Set<String> savedRecipes;
-  final Function(String) onFavoriteTap;
-  final Function(String) onSavedTap;
+  final Function(Recipe, bool) onFavoriteTap;
+  final Function(Recipe, bool) onSavedTap;
   final Function(Recipe) onRecipeTap;
 
   const SavedScreen({
@@ -38,10 +38,7 @@ class SavedScreen extends StatelessWidget {
                 children: [
                   const Text(
                     'Saved Recipes 🔖',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -55,22 +52,24 @@ class SavedScreen extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 15,
-                      mainAxisSpacing: 18,
-                      childAspectRatio: 0.68,
-                    ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 18,
+                          childAspectRatio: 0.68,
+                        ),
                     itemBuilder: (context, index) {
                       final recipe = recipes[index];
                       return RecipeCard(
                         recipe: recipe,
-                        isFavorite: favoriteRecipes.contains(recipe.title),
-                        isSaved: savedRecipes.contains(recipe.title),
-                        onFavoriteTap: () {
-                          onFavoriteTap(recipe.title);
+                        isFavorite: favoriteRecipes.any(
+                          recipe.matchesIdentifier,
+                        ),
+                        isSaved: savedRecipes.any(recipe.matchesIdentifier),
+                        onFavoriteTap: (shouldBeFavorite) {
+                          onFavoriteTap(recipe, shouldBeFavorite);
                         },
-                        onSavedTap: () {
-                          onSavedTap(recipe.title);
+                        onSavedTap: (shouldBeSaved) {
+                          onSavedTap(recipe, shouldBeSaved);
                         },
                         onTap: () {
                           onRecipeTap(recipe);

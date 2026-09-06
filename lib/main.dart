@@ -22,13 +22,16 @@ class RecipeApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Recipe App',
+
       theme: ThemeData(
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF6F7F9),
+
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF4FA58C),
         ),
       ),
+
       home: const AuthGate(),
     );
   }

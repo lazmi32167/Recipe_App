@@ -7,8 +7,8 @@ class HomeScreen extends StatefulWidget {
   final List<Recipe> recipes;
   final Set<String> favoriteRecipes;
   final Set<String> savedRecipes;
-  final Function(String) onFavoriteTap;
-  final Function(String) onSavedTap;
+  final Function(Recipe, bool) onFavoriteTap;
+  final Function(Recipe, bool) onSavedTap;
   final Function(Recipe) onRecipeTap;
 
   const HomeScreen({
@@ -34,17 +34,19 @@ class _HomeScreenState extends State<HomeScreen> {
     'Dinner',
     'Lunch',
     'Breakfast',
+    'Dessert',
   ];
 
   @override
   Widget build(BuildContext context) {
     final selectedCategoryName = categories[selectedCategory];
     final filteredRecipes = widget.recipes.where((recipe) {
-      final matchesCategory = selectedCategoryName == 'All' ||
+      final matchesCategory =
+          selectedCategoryName == 'All' ||
           recipe.category == selectedCategoryName;
-      final matchesSearch = recipe.title
-          .toLowerCase()
-          .contains(searchText.toLowerCase());
+      final matchesSearch = recipe.title.toLowerCase().contains(
+        searchText.toLowerCase(),
+      );
       return matchesCategory && matchesSearch;
     }).toList();
 
@@ -74,10 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(
-                      Icons.notifications_none,
-                      size: 25,
-                    ),
+                    child: const Icon(Icons.notifications_none, size: 25),
                   ),
                 ],
               ),
@@ -98,10 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   decoration: const InputDecoration(
                     hintText: 'Search any recipes',
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.grey,
-                    ),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey),
                     border: InputBorder.none,
                   ),
                 ),
@@ -232,10 +228,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Text(
                     'Quick & Easy',
-                    style: TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     'View all',
@@ -254,11 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Center(
                   child: Column(
                     children: [
-                      Icon(
-                        Icons.search_off,
-                        size: 70,
-                        color: Colors.grey,
-                      ),
+                      Icon(Icons.search_off, size: 70, color: Colors.grey),
                       SizedBox(height: 15),
                       Text(
                         'No recipes found',
@@ -284,16 +273,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(right: 14),
                       child: RecipeCard(
                         recipe: recipe,
-                        isFavorite:
-                            widget.favoriteRecipes.contains(recipe.title),
-                        isSaved: widget.savedRecipes.contains(recipe.title),
-                        onFavoriteTap: () {
-                          widget.onFavoriteTap(recipe.title);
-                          setState(() {});
+                        isFavorite: widget.favoriteRecipes.any(
+                          recipe.matchesIdentifier,
+                        ),
+                        isSaved: widget.savedRecipes.any(
+                          recipe.matchesIdentifier,
+                        ),
+                        onFavoriteTap: (shouldBeFavorite) {
+                          widget.onFavoriteTap(recipe, shouldBeFavorite);
                         },
-                        onSavedTap: () {
-                          widget.onSavedTap(recipe.title);
-                          setState(() {});
+                        onSavedTap: (shouldBeSaved) {
+                          widget.onSavedTap(recipe, shouldBeSaved);
                         },
                         onTap: () {
                           widget.onRecipeTap(recipe);

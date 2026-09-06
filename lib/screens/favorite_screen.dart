@@ -7,8 +7,8 @@ class FavoriteScreen extends StatelessWidget {
   final List<Recipe> recipes;
   final Set<String> favoriteRecipes;
   final Set<String> savedRecipes;
-  final Function(String) onFavoriteTap;
-  final Function(String) onSavedTap;
+  final Function(Recipe, bool) onFavoriteTap;
+  final Function(Recipe, bool) onSavedTap;
   final Function(Recipe) onRecipeTap;
 
   const FavoriteScreen({
@@ -37,10 +37,7 @@ class FavoriteScreen extends StatelessWidget {
                 children: [
                   const Text(
                     'My Favorites ❤️',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -54,22 +51,24 @@ class FavoriteScreen extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 15,
-                      mainAxisSpacing: 18,
-                      childAspectRatio: 0.68,
-                    ),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 18,
+                          childAspectRatio: 0.68,
+                        ),
                     itemBuilder: (context, index) {
                       final recipe = recipes[index];
                       return RecipeCard(
                         recipe: recipe,
-                        isFavorite: favoriteRecipes.contains(recipe.title),
-                        isSaved: savedRecipes.contains(recipe.title),
-                        onFavoriteTap: () {
-                          onFavoriteTap(recipe.title);
+                        isFavorite: favoriteRecipes.any(
+                          recipe.matchesIdentifier,
+                        ),
+                        isSaved: savedRecipes.any(recipe.matchesIdentifier),
+                        onFavoriteTap: (shouldBeFavorite) {
+                          onFavoriteTap(recipe, shouldBeFavorite);
                         },
-                        onSavedTap: () {
-                          onSavedTap(recipe.title);
+                        onSavedTap: (shouldBeSaved) {
+                          onSavedTap(recipe, shouldBeSaved);
                         },
                         onTap: () {
                           onRecipeTap(recipe);
@@ -104,19 +103,12 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 80,
-              color: const Color(0xFF4FA58C),
-            ),
+            Icon(icon, size: 80, color: const Color(0xFF4FA58C)),
             const SizedBox(height: 20),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(

@@ -7,8 +7,8 @@ class RecipeCard extends StatelessWidget {
   final bool isFavorite;
   final bool isSaved;
   final VoidCallback onTap;
-  final VoidCallback onFavoriteTap;
-  final VoidCallback onSavedTap;
+  final ValueChanged<bool> onFavoriteTap;
+  final ValueChanged<bool> onSavedTap;
 
   const RecipeCard({
     super.key,
@@ -39,16 +39,13 @@ class RecipeCard extends StatelessWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: Image.asset(
-                          recipe.imagePath,
-                          fit: BoxFit.cover,
-                        ),
+                        child: Image.asset(recipe.imagePath, fit: BoxFit.cover),
                       ),
                       Positioned(
                         top: 8,
                         right: 8,
                         child: GestureDetector(
-                          onTap: onFavoriteTap,
+                          onTap: () => onFavoriteTap(!isFavorite),
                           child: CircleAvatar(
                             radius: 16,
                             backgroundColor: Colors.white,
@@ -66,7 +63,7 @@ class RecipeCard extends StatelessWidget {
                         top: 44,
                         right: 8,
                         child: GestureDetector(
-                          onTap: onSavedTap,
+                          onTap: () => onSavedTap(!isSaved),
                           child: CircleAvatar(
                             radius: 16,
                             backgroundColor: Colors.white,
@@ -90,10 +87,7 @@ class RecipeCard extends StatelessWidget {
               recipe.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Row(
