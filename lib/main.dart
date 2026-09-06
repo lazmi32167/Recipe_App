@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-import 'screens/main_navigation_screen.dart';
+import 'firebase_options.dart';
+import 'screens/auth_gate.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const RecipeApp());
 }
 
@@ -21,7 +29,7 @@ class RecipeApp extends StatelessWidget {
           seedColor: const Color(0xFF4FA58C),
         ),
       ),
-      home: const MainNavigationScreen(),
+      home: const AuthGate(),
     );
   }
 }

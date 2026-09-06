@@ -31,10 +31,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<String> categories = [
     'All',
-    'Breakfast',
-    'Lunch',
     'Dinner',
-    'Dessert',
+    'Lunch',
+    'Breakfast',
   ];
 
   @override
@@ -55,57 +54,29 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 25,
-                        backgroundColor: Color(0xFFE8F3EE),
-                        child: Icon(
-                          Icons.person,
-                          color: Color(0xFF4FA58C),
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hello 👋',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            'What are you cooking?',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  const Text(
+                    'What are you\ncooking today?',
+                    style: TextStyle(
+                      fontSize: 29,
+                      height: 1.05,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Container(
                     height: 48,
                     width: 48,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(
                       Icons.notifications_none,
-                      size: 26,
+                      size: 25,
                     ),
                   ),
                 ],
@@ -114,10 +85,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
-                height: 55,
+                height: 50,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
                   onChanged: (value) {
@@ -126,13 +97,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                   decoration: const InputDecoration(
-                    hintText: 'Search recipes...',
+                    hintText: 'Search any recipes',
                     prefixIcon: Icon(
                       Icons.search,
-                      color: Color(0xFF4FA58C),
-                    ),
-                    suffixIcon: Icon(
-                      Icons.tune,
                       color: Colors.grey,
                     ),
                     border: InputBorder.none,
@@ -144,57 +111,62 @@ class _HomeScreenState extends State<HomeScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
-                height: 190,
+                height: 140,
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: const Color(0xFF4FA58C),
-                  borderRadius: BorderRadius.circular(25),
+                  borderRadius: BorderRadius.circular(13),
                 ),
                 child: Stack(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(22),
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(14, 18, 110, 0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Recipe of the Day',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'Delicious food\nmade easy!',
+                          Text(
+                            'Cook the best\nrecipes at home',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 25,
+                              fontSize: 20,
+                              height: 1.05,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                          const Spacer(),
-                          ElevatedButton(
-                            onPressed: () {
-                              widget.onRecipeTap(widget.recipes.first);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF4FA58C),
-                            ),
-                            child: const Text('Explore'),
                           ),
                         ],
                       ),
                     ),
                     Positioned(
-                      right: 20,
-                      bottom: 25,
+                      left: 14,
+                      bottom: 12,
+                      child: ElevatedButton(
+                        onPressed: widget.recipes.isEmpty
+                            ? null
+                            : () => widget.onRecipeTap(widget.recipes.first),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(92, 36),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black87,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          'Explore',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 16,
+                      bottom: 12,
                       child: Container(
-                        height: 100,
-                        width: 100,
+                        height: 95,
+                        width: 95,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: Colors.white.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -209,19 +181,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            const Center(
               child: Text(
                 'Categories',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 15),
             SizedBox(
-              height: 45,
+              height: 40,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -236,12 +204,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     child: Container(
                       margin: const EdgeInsets.only(right: 12),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFF4FA58C)
                             : Colors.white,
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -263,14 +231,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Popular Recipes',
+                    'Quick & Easy',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 21,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    '${filteredRecipes.length} recipes',
+                    'View all',
                     style: const TextStyle(
                       color: Color(0xFF4FA58C),
                       fontWeight: FontWeight.w500,
@@ -304,37 +272,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               )
             else
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: GridView.builder(
+              SizedBox(
+                height: 245,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   itemCount: filteredRecipes.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 15,
-                    mainAxisSpacing: 18,
-                    childAspectRatio: 0.68,
-                  ),
                   itemBuilder: (context, index) {
                     final recipe = filteredRecipes[index];
-                    return RecipeCard(
-                      recipe: recipe,
-                      isFavorite:
-                          widget.favoriteRecipes.contains(recipe.title),
-                      isSaved: widget.savedRecipes.contains(recipe.title),
-                      onFavoriteTap: () {
-                        widget.onFavoriteTap(recipe.title);
-                        setState(() {});
-                      },
-                      onSavedTap: () {
-                        widget.onSavedTap(recipe.title);
-                        setState(() {});
-                      },
-                      onTap: () {
-                        widget.onRecipeTap(recipe);
-                      },
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 14),
+                      child: RecipeCard(
+                        recipe: recipe,
+                        isFavorite:
+                            widget.favoriteRecipes.contains(recipe.title),
+                        isSaved: widget.savedRecipes.contains(recipe.title),
+                        onFavoriteTap: () {
+                          widget.onFavoriteTap(recipe.title);
+                          setState(() {});
+                        },
+                        onSavedTap: () {
+                          widget.onSavedTap(recipe.title);
+                          setState(() {});
+                        },
+                        onTap: () {
+                          widget.onRecipeTap(recipe);
+                        },
+                      ),
                     );
                   },
                 ),

@@ -6,14 +6,18 @@ import '../widgets/recipe_card.dart';
 class FavoriteScreen extends StatelessWidget {
   final List<Recipe> recipes;
   final Set<String> favoriteRecipes;
+  final Set<String> savedRecipes;
   final Function(String) onFavoriteTap;
+  final Function(String) onSavedTap;
   final Function(Recipe) onRecipeTap;
 
   const FavoriteScreen({
     super.key,
     required this.recipes,
     required this.favoriteRecipes,
+    required this.savedRecipes,
     required this.onFavoriteTap,
+    required this.onSavedTap,
     required this.onRecipeTap,
   });
 
@@ -59,12 +63,14 @@ class FavoriteScreen extends StatelessWidget {
                       final recipe = recipes[index];
                       return RecipeCard(
                         recipe: recipe,
-                        isFavorite: true,
-                        isSaved: false,
+                        isFavorite: favoriteRecipes.contains(recipe.title),
+                        isSaved: savedRecipes.contains(recipe.title),
                         onFavoriteTap: () {
                           onFavoriteTap(recipe.title);
                         },
-                        onSavedTap: () {},
+                        onSavedTap: () {
+                          onSavedTap(recipe.title);
+                        },
                         onTap: () {
                           onRecipeTap(recipe);
                         },

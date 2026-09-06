@@ -22,6 +22,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Recipe> recipes = [
     const Recipe(
       title: 'Creamy Pasta', category: 'Dinner', time: '20 min', rating: '4.8',
+      imagePath: 'assets/images/creamy_pasta.jpg',
       icon: Icons.ramen_dining,
       description: 'A delicious creamy pasta recipe that is quick and easy to prepare at home.',
       ingredients: ['Pasta', 'Fresh cream', 'Garlic', 'Cheese', 'Salt and pepper'],
@@ -29,6 +30,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ),
     const Recipe(
       title: 'Chicken Burger', category: 'Lunch', time: '25 min', rating: '4.7',
+      imagePath: 'assets/images/chicken_burger.jpg',
       icon: Icons.lunch_dining,
       description: 'A juicy homemade chicken burger with fresh vegetables and delicious sauce.',
       ingredients: ['Chicken patty', 'Burger bun', 'Lettuce', 'Tomato', 'Mayonnaise'],
@@ -36,6 +38,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ),
     const Recipe(
       title: 'Fresh Salad', category: 'Breakfast', time: '10 min', rating: '4.9',
+      imagePath: 'assets/images/fresh_salad.jpg',
       icon: Icons.eco,
       description: 'A healthy and refreshing salad made with fresh vegetables.',
       ingredients: ['Lettuce', 'Tomato', 'Cucumber', 'Olive oil', 'Salt and pepper'],
@@ -43,6 +46,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ),
     const Recipe(
       title: 'Chocolate Cake', category: 'Dessert', time: '40 min', rating: '4.8',
+      imagePath: 'assets/images/chocolate_cake.jpg',
       icon: Icons.cake,
       description: 'A soft and delicious chocolate cake perfect for dessert lovers.',
       ingredients: ['Flour', 'Chocolate powder', 'Sugar', 'Eggs', 'Butter'],
@@ -50,6 +54,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ),
     const Recipe(
       title: 'Healthy Breakfast', category: 'Breakfast', time: '15 min', rating: '4.6',
+      imagePath: 'assets/images/healthy_breakfast.jpg',
       icon: Icons.breakfast_dining,
       description: 'A simple and healthy breakfast to start your day with energy.',
       ingredients: ['Eggs', 'Bread', 'Avocado', 'Vegetables', 'Salt'],
@@ -57,6 +62,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     ),
     const Recipe(
       title: 'Grilled Chicken', category: 'Dinner', time: '30 min', rating: '4.9',
+      imagePath: 'assets/images/grilled_chicken.jpg',
       icon: Icons.outdoor_grill,
       description: 'Flavorful grilled chicken with spices and fresh herbs.',
       ingredients: ['Chicken', 'Cooking oil', 'Garlic', 'Spices', 'Fresh herbs'],
@@ -115,12 +121,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       FavoriteScreen(
         recipes: recipes.where((recipe) => favoriteRecipes.contains(recipe.title)).toList(),
         favoriteRecipes: favoriteRecipes,
+        savedRecipes: savedRecipes,
         onFavoriteTap: toggleFavorite,
+        onSavedTap: toggleSaved,
         onRecipeTap: openRecipe,
       ),
       SavedScreen(
         recipes: recipes.where((recipe) => savedRecipes.contains(recipe.title)).toList(),
+        favoriteRecipes: favoriteRecipes,
         savedRecipes: savedRecipes,
+        onFavoriteTap: toggleFavorite,
         onSavedTap: toggleSaved,
         onRecipeTap: openRecipe,
       ),
