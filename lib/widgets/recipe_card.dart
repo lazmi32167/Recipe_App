@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/recipe.dart';
+import 'recipe_image.dart';
 
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
@@ -39,7 +40,7 @@ class RecipeCard extends StatelessWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: Image.asset(recipe.imagePath, fit: BoxFit.cover),
+                        child: RecipeImage(imagePath: recipe.imagePath),
                       ),
                       Positioned(
                         top: 8,

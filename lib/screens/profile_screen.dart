@@ -7,6 +7,8 @@ import '../services/user_recipe_service.dart';
 import '../widgets/profile_option.dart';
 import 'my_favorites_screen.dart';
 import 'saved_recipes_screen.dart';
+import 'help_support_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   final List<Recipe> recipes;
@@ -141,22 +143,32 @@ class ProfileScreen extends StatelessWidget {
                           title: 'My Recipes',
                           onTap: onMyRecipes,
                         ),
-                        const ProfileOption(
+                        ProfileOption(
                           icon: Icons.settings_outlined,
                           title: 'Settings',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsScreen(),
+                            ),
+                          ),
                         ),
-                        const ProfileOption(
+                        ProfileOption(
                           icon: Icons.help_outline,
                           title: 'Help & Support',
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HelpSupportScreen(),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 20),
                         SizedBox(
                           width: double.infinity,
                           height: 50,
                           child: OutlinedButton.icon(
-                            onPressed: () async {
-                              await FirebaseAuth.instance.signOut();
-                            },
+                            onPressed: () => _confirmLogout(context),
                             icon: const Icon(Icons.logout),
                             label: const Text(
                               'Logout',
@@ -179,6 +191,36 @@ class ProfileScreen extends StatelessWidget {
         },
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to logout. Please try again.')),
+        );
+      }
+    }
   }
 }
 

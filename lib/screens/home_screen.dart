@@ -26,27 +26,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int selectedCategory = 0;
+  String selectedCategory = 'All';
   String searchText = '';
 
-  final List<String> categories = [
-    'All',
-    'Dinner',
-    'Lunch',
-    'Breakfast',
-    'Dessert',
-  ];
+  List<String> get categories {
+    final values = <String>['All'];
+    for (final recipe in widget.recipes) {
+      if (!values.contains(recipe.category)) values.add(recipe.category);
+    }
+    return values;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selectedCategoryName = categories[selectedCategory];
     final filteredRecipes = widget.recipes.where((recipe) {
       final matchesCategory =
-          selectedCategoryName == 'All' ||
-          recipe.category == selectedCategoryName;
-      final matchesSearch = recipe.title.toLowerCase().contains(
-        searchText.toLowerCase(),
-      );
+          selectedCategory == 'All' || recipe.category == selectedCategory;
+      final query = searchText.trim().toLowerCase();
+      final matchesSearch = query.isEmpty ||
+          recipe.title.toLowerCase().contains(query) ||
+          recipe.category.toLowerCase().contains(query);
       return matchesCategory && matchesSearch;
     }).toList();
 
@@ -191,11 +190,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
-                  final isSelected = selectedCategory == index;
+                  final isSelected = selectedCategory == categories[index];
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        selectedCategory = index;
+                        selectedCategory = categories[index];
                       });
                     },
                     child: Container(

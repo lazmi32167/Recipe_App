@@ -1,6 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/recipe.dart';
+import '../models/recipe_review.dart';
+import '../services/recipe_feedback_service.dart';
+import '../widgets/recipe_image.dart';
 
 class RecipeDetailPage extends StatefulWidget {
   final Recipe recipe;
@@ -26,12 +30,103 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   late bool isFavorite;
   late bool isSaved;
   int servings = 2;
+  final feedbackService = RecipeFeedbackService();
+  final reviewController = TextEditingController();
+  bool isSubmittingReview = false;
+  bool isSubmittingRating = false;
+  bool isEditingReview = false;
+  int? selectedReviewRating;
 
   @override
   void initState() {
     super.initState();
     isFavorite = widget.isFavorite;
     isSaved = widget.isSaved;
+  }
+
+  @override
+  void dispose() {
+    reviewController.dispose();
+    super.dispose();
+  }
+
+  bool get supportsFeedback =>
+      widget.recipe.id.isNotEmpty && !widget.recipe.id.startsWith('legacy_');
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _setRating(int rating) async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      _showMessage('Please log in to rate recipes.');
+      return;
+    }
+    if (isSubmittingRating) return;
+    final wasRated = selectedReviewRating != null;
+    setState(() {
+      isSubmittingRating = true;
+      selectedReviewRating = rating;
+    });
+    try {
+      await feedbackService.setRating(widget.recipe.id, rating);
+      _showMessage(wasRated ? 'Rating updated.' : 'Rating submitted.');
+    } on FirebaseException catch (error) {
+      _showMessage(_friendlyFirebaseError('rating', error));
+    } catch (error) {
+      _showMessage(_friendlyError('rating', error));
+    } finally {
+      if (mounted) setState(() => isSubmittingRating = false);
+    }
+  }
+
+  Future<void> _saveReview(int? rating) async {
+    if (reviewController.text.trim().isEmpty) {
+      _showMessage('Please write a review first.');
+      return;
+    }
+    if (FirebaseAuth.instance.currentUser == null) {
+      _showMessage('Please log in to write a review.');
+      return;
+    }
+    setState(() => isSubmittingReview = true);
+    final wasEditing = isEditingReview;
+    try {
+      await feedbackService.saveReview(
+        widget.recipe.id,
+        reviewController.text,
+        rating: rating,
+      );
+      reviewController.clear();
+      setState(() => isEditingReview = false);
+      _showMessage(wasEditing ? 'Review updated.' : 'Review saved.');
+    } on FirebaseException catch (error) {
+      _showMessage(_friendlyFirebaseError('review', error));
+    } catch (error) {
+      _showMessage(_friendlyError('review', error));
+    } finally {
+      if (mounted) setState(() => isSubmittingReview = false);
+    }
+  }
+
+  String _friendlyFirebaseError(String action, FirebaseException error) {
+    switch (error.code) {
+      case 'permission-denied':
+        return 'Unable to save $action. Firebase permissions rejected the request.';
+      case 'unavailable':
+        return 'Unable to save $action while offline. Please try again.';
+      case 'not-found':
+        return 'This recipe is no longer available online.';
+      default:
+        return 'Unable to save $action (${error.code}). Please try again.';
+    }
+  }
+
+  String _friendlyError(String action, Object error) {
+    return 'Unable to save $action. Please try again.';
   }
 
   @override
@@ -51,7 +146,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Stack(
                   children: [
                     Positioned.fill(
-                      child: Image.asset(recipe.imagePath, fit: BoxFit.cover),
+                      child: RecipeImage(imagePath: recipe.imagePath),
                     ),
                     Positioned(
                       top: 16,
@@ -166,6 +261,45 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                           height: 1.4,
                         ),
                       ),
+                      if (supportsFeedback) ...[
+                        const SizedBox(height: 26),
+                        _FeedbackSection(
+                          recipeId: recipe.id,
+                          service: feedbackService,
+                          reviewController: reviewController,
+                          isSubmittingReview: isSubmittingReview,
+                          isSubmittingRating: isSubmittingRating,
+                          isEditingReview: isEditingReview,
+                          selectedReviewRating: selectedReviewRating,
+                          onRatingSelected: _setRating,
+                          onSubmitReview: _saveReview,
+                          onDeleteReview: (review) async {
+                            try {
+                              await feedbackService.deleteReview(
+                                recipe.id,
+                                review.id,
+                              );
+                              _showMessage('Review deleted.');
+                            } catch (_) {
+                              _showMessage('Unable to delete your review.');
+                            }
+                          },
+                          onEditReview: (review) {
+                            setState(() {
+                              reviewController.text = review.comment;
+                              selectedReviewRating = review.rating;
+                              isEditingReview = true;
+                            });
+                            _showMessage('Review loaded for editing.');
+                          },
+                        ),
+                      ] else ...[
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Community ratings are available for online recipes.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -269,6 +403,229 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FeedbackSection extends StatelessWidget {
+  final String recipeId;
+  final RecipeFeedbackService service;
+  final TextEditingController reviewController;
+  final bool isSubmittingReview;
+  final bool isSubmittingRating;
+  final bool isEditingReview;
+  final int? selectedReviewRating;
+  final ValueChanged<int> onRatingSelected;
+  final ValueChanged<int?> onSubmitReview;
+  final Future<void> Function(RecipeReview review) onDeleteReview;
+  final ValueChanged<RecipeReview> onEditReview;
+
+  const _FeedbackSection({
+    required this.recipeId,
+    required this.service,
+    required this.reviewController,
+    required this.isSubmittingReview,
+    required this.isSubmittingRating,
+    required this.isEditingReview,
+    required this.selectedReviewRating,
+    required this.onRatingSelected,
+    required this.onSubmitReview,
+    required this.onDeleteReview,
+    required this.onEditReview,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ratings & Reviews',
+          style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<RecipeRatingSummary>(
+          stream: service.ratingSummaryStream(recipeId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              );
+            }
+            final summary =
+                snapshot.data ??
+                const RecipeRatingSummary(average: 0, count: 0);
+            return Row(
+              children: [
+                Text(
+                  summary.count == 0
+                      ? 'No ratings yet'
+                      : summary.average.toStringAsFixed(1),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.star, color: Color(0xFFF2C94C)),
+                const SizedBox(width: 8),
+                Text('${summary.count} rating${summary.count == 1 ? '' : 's'}'),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        StreamBuilder<int>(
+          stream: service.currentUserRatingStream(recipeId),
+          builder: (context, snapshot) => Row(
+            children: [
+              const Text('Your rating'),
+              const SizedBox(width: 10),
+              for (var rating = 1; rating <= 5; rating++)
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  tooltip: '$rating star${rating == 1 ? '' : 's'}',
+                  onPressed: isSubmittingRating
+                      ? null
+                      : () => onRatingSelected(rating),
+                  icon: Icon(
+                    rating <= (selectedReviewRating ?? snapshot.data ?? 0)
+                        ? Icons.star
+                        : Icons.star_border,
+                    color: const Color(0xFFF2C94C),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: reviewController,
+          minLines: 2,
+          maxLines: 4,
+          maxLength: 500,
+          decoration: const InputDecoration(
+            labelText: 'Write a review',
+            alignLabelWithHint: true,
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.icon(
+            onPressed: isSubmittingReview
+                ? null
+                : () => onSubmitReview(selectedReviewRating),
+            icon: isSubmittingReview
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.send_outlined),
+            label: Text(isEditingReview ? 'Update Review' : 'Submit Review'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<RecipeReview>>(
+          stream: service.reviewsStream(recipeId),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return const Text('Reviews are unavailable right now.');
+            }
+            final reviews = snapshot.data ?? const <RecipeReview>[];
+            if (reviews.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'No reviews yet. Be the first to share your experience!',
+                ),
+              );
+            }
+            final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+            return Column(
+              children: reviews
+                  .map(
+                    (review) => Card(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      elevation: 0,
+                      color: const Color(0xFFF6F7F9),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    review.userName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  if (review.rating != null)
+                                    Row(
+                                      children: List.generate(
+                                        5,
+                                        (index) => Icon(
+                                          index < review.rating!
+                                              ? Icons.star
+                                              : Icons.star_border,
+                                          size: 16,
+                                          color: const Color(0xFFF2C94C),
+                                        ),
+                                      ),
+                                    ),
+                                  Text(review.comment),
+                                  if (review.updatedAt != null &&
+                                      review.createdAt != null &&
+                                      review.updatedAt != review.createdAt)
+                                    const Text(
+                                      'Edited',
+                                      style: TextStyle(
+                                        color: Colors.grey,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            if (review.userId == currentUserId)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Edit review',
+                                    onPressed: () => onEditReview(review),
+                                    icon: const Icon(Icons.edit_outlined),
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Delete review',
+                                    onPressed: () => onDeleteReview(review),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            );
+          },
+        ),
+      ],
     );
   }
 }

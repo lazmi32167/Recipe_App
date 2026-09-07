@@ -53,7 +53,7 @@ class Recipe {
       time: _stringValue(data['time'], fallback: 'Time unavailable'),
       rating: _stringValue(data['rating'], fallback: '0.0'),
       imagePath: _stringValue(
-        data['imagePath'],
+        data['imagePath'] ?? data['imageUrl'],
         fallback: 'assets/images/creamy_pasta.jpg',
       ),
       icon: _iconForCategory(category),

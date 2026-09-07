@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /{collectionName}/{documentId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    match /recipes/{recipeId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
+
+      match /ratings/{userId} {
+        allow read: if signedIn();
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.rating is number
+          && request.resource.data.rating >= 1
+          && request.resource.data.rating <= 5;
+        allow delete: if isOwner(userId);
+      }
+
+      match /reviews/{userId} {
+        allow read: if signedIn();
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.userName is string
+          && request.resource.data.comment is string
+          && request.resource.data.comment.size() > 0
+          && request.resource.data.comment.size() <= 500
+          && (!request.resource.data.keys().hasAny(['rating'])
+            || (request.resource.data.rating is number
+              && request.resource.data.rating >= 1
+              && request.resource.data.rating <= 5));
+        allow update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.userName is string
+          && request.resource.data.comment is string
+          && request.resource.data.comment.size() > 0
+          && request.resource.data.comment.size() <= 500
+          && request.resource.data.createdAt == resource.data.createdAt
+          && (!request.resource.data.keys().hasAny(['rating'])
+            || (request.resource.data.rating is number
+              && request.resource.data.rating >= 1
+              && request.resource.data.rating <= 5));
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

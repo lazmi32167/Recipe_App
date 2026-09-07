@@ -1,17 +1,25 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../models/recipe.dart';
 import '../services/recipe_service.dart';
 import '../services/user_recipe_service.dart';
 import '../widgets/recipe_card.dart';
+import 'edit_recipe_screen.dart';
 import 'favorite_screen.dart';
 import 'recipe_detail_page.dart';
 
-class MyRecipesScreen extends StatelessWidget {
-  MyRecipesScreen({super.key});
+class MyRecipesScreen extends StatefulWidget {
+  const MyRecipesScreen({super.key});
 
+  @override
+  State<MyRecipesScreen> createState() => _MyRecipesScreenState();
+}
+
+class _MyRecipesScreenState extends State<MyRecipesScreen> {
   final recipeService = RecipeService();
   final userRecipeService = UserRecipeService();
+  final Set<String> deletingRecipeIds = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -85,20 +93,46 @@ class MyRecipesScreen extends StatelessWidget {
                           Positioned(
                             top: 8,
                             left: 8,
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.white,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                iconSize: 18,
-                                tooltip: 'Delete recipe',
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Colors.red,
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    iconSize: 18,
+                                    tooltip: 'Edit recipe',
+                                    icon: const Icon(Icons.edit_outlined),
+                                    onPressed: deletingRecipeIds.contains(recipe.id)
+                                        ? null
+                                        : () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => EditRecipeScreen(
+                                                recipe: recipe,
+                                              ),
+                                            ),
+                                          ),
+                                  ),
                                 ),
-                                onPressed: () =>
-                                    _confirmDelete(context, recipe.id),
-                              ),
+                                const SizedBox(width: 6),
+                                CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: Colors.white,
+                                  child: IconButton(
+                                    padding: EdgeInsets.zero,
+                                    iconSize: 18,
+                                    tooltip: 'Delete recipe',
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: deletingRecipeIds.contains(recipe.id)
+                                        ? null
+                                        : () => _confirmDelete(context, recipe),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -114,12 +148,14 @@ class MyRecipesScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmDelete(BuildContext context, String recipeId) async {
+  Future<void> _confirmDelete(BuildContext context, Recipe recipe) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete recipe?'),
-        content: const Text('This recipe will be permanently deleted.'),
+        title: const Text('Delete Recipe?'),
+        content: const Text(
+          'Are you sure you want to delete this recipe? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -133,19 +169,24 @@ class MyRecipesScreen extends StatelessWidget {
       ),
     );
     if (confirmed != true) return;
+    setState(() => deletingRecipeIds.add(recipe.id));
     try {
-      await recipeService.deleteRecipe(recipeId);
+      await recipeService.deleteRecipe(recipe);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Recipe deleted.')));
+        ).showSnackBar(
+          const SnackBar(content: Text('Recipe deleted successfully.')),
+        );
       }
     } catch (error) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not delete recipe: $error')),
+          const SnackBar(content: Text('Unable to delete recipe.')),
         );
       }
+    } finally {
+      if (mounted) setState(() => deletingRecipeIds.remove(recipe.id));
     }
   }
 }

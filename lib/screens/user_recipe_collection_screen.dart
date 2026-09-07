@@ -40,10 +40,14 @@ class UserRecipeCollectionScreen extends StatelessWidget {
             return Center(child: Text('Could not load $title.'));
           }
 
-          final recipesById = {for (final recipe in recipes) recipe.id: recipe};
           final storedRecipes =
               snapshot.data?.docs
-                  .map((doc) => recipesById[doc.data()['recipeId'] ?? doc.id])
+                .map((doc) {
+                final storedId = doc.data()['recipeId'] ?? doc.id;
+                return recipes
+                  .where((recipe) => recipe.matchesIdentifier(storedId))
+                  .firstOrNull;
+                })
                   .whereType<Recipe>()
                   .toList() ??
               <Recipe>[];
@@ -95,11 +99,10 @@ class UserRecipeCollectionScreen extends StatelessWidget {
                         final recipe = storedRecipes[index];
                         return RecipeCard(
                           recipe: recipe,
-                          isFavorite:
-                              isFavorites || otherRecipeIds.contains(recipe.id),
-                          isSaved:
-                              !isFavorites ||
-                              otherRecipeIds.contains(recipe.id),
+                          isFavorite: isFavorites ||
+                            otherRecipeIds.any(recipe.matchesIdentifier),
+                          isSaved: !isFavorites ||
+                            otherRecipeIds.any(recipe.matchesIdentifier),
                           onFavoriteTap: (shouldBeFavorite) async {
                             try {
                               await service.toggleFavorite(
