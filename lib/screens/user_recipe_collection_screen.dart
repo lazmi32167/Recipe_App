@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 
 import '../models/recipe.dart';
 import '../services/user_recipe_service.dart';
+import '../widgets/app_empty_state.dart';
+import '../widgets/app_error_state.dart';
+import '../widgets/app_loading.dart';
 import '../widgets/recipe_card.dart';
-import 'favorite_screen.dart';
 
 class UserRecipeCollectionScreen extends StatelessWidget {
   final String collectionName;
@@ -36,8 +38,16 @@ class UserRecipeCollectionScreen extends StatelessWidget {
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: service.recipesStream(collectionName),
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AppLoading(message: 'Loading recipes...');
+          }
+
           if (snapshot.hasError) {
-            return Center(child: Text('Could not load $title.'));
+            return AppErrorState(
+              title: 'Unable to Load $title',
+              subtitle: 'Please check your connection and try again.',
+              icon: Icons.error_outline,
+            );
           }
 
           final storedRecipes =
@@ -53,7 +63,7 @@ class UserRecipeCollectionScreen extends StatelessWidget {
               <Recipe>[];
 
           if (storedRecipes.isEmpty) {
-            return EmptyState(
+            return AppEmptyState(
               icon: emptyIcon,
               title: emptyTitle,
               subtitle: emptySubtitle,
@@ -80,8 +90,10 @@ class UserRecipeCollectionScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${storedRecipes.length} recipes',
-                      style: const TextStyle(color: Colors.grey),
+                      '${storedRecipes.length} recipe${storedRecipes.length != 1 ? 's' : ''}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 25),
                     GridView.builder(
@@ -93,7 +105,7 @@ class UserRecipeCollectionScreen extends StatelessWidget {
                             crossAxisCount: 2,
                             crossAxisSpacing: 15,
                             mainAxisSpacing: 18,
-                            childAspectRatio: 0.68,
+                            childAspectRatio: 0.75,
                           ),
                       itemBuilder: (context, index) {
                         final recipe = storedRecipes[index];

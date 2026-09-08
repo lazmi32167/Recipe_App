@@ -291,10 +291,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   body: pages[selectedNavIndex],
                   bottomNavigationBar: BottomNavigationBar(
                     currentIndex: selectedNavIndex,
-                    selectedItemColor: const Color(0xFF4FA58C),
-                    unselectedItemColor: Colors.grey,
+                    selectedItemColor: Theme.of(context).colorScheme.primary,
+                    unselectedItemColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant,
                     type: BottomNavigationBarType.fixed,
-                    backgroundColor: Colors.white,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     onTap: (index) {
                       setState(() {
                         selectedNavIndex = index;

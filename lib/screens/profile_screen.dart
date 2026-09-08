@@ -63,13 +63,15 @@ class ProfileScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         const SizedBox(height: 20),
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 55,
-                          backgroundColor: Color(0xFFE8F3EE),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primaryContainer,
                           child: Icon(
                             Icons.person,
                             size: 60,
-                            color: Color(0xFF4FA58C),
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                         const SizedBox(height: 18),
@@ -81,7 +83,14 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 5),
-                        Text(email, style: const TextStyle(color: Colors.grey)),
+                        Text(
+                          email,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                         const SizedBox(height: 35),
                         Row(
                           children: [
@@ -242,7 +251,7 @@ class ProfileStat extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 18),
 
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(18),
       ),
 
@@ -257,7 +266,13 @@ class ProfileStat extends StatelessWidget {
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
 
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          Text(
+            label,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
         ],
       ),
     );

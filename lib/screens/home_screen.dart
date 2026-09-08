@@ -28,26 +28,93 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String selectedCategory = 'All';
   String searchText = '';
+  String selectedSort = 'Newest';
+  final TextEditingController searchController = TextEditingController();
+
+  static const sortOptions = ['Newest', 'Highest Rated', 'A-Z'];
 
   List<String> get categories {
     final values = <String>['All'];
     for (final recipe in widget.recipes) {
-      if (!values.contains(recipe.category)) values.add(recipe.category);
+      final category = recipe.category.trim();
+      if (category.isNotEmpty &&
+          !values.any(
+            (value) => value.toLowerCase() == category.toLowerCase(),
+          )) {
+        values.add(category);
+      }
     }
     return values;
   }
 
+  String get activeCategory =>
+      categories.contains(selectedCategory) ? selectedCategory : 'All';
+
   @override
-  Widget build(BuildContext context) {
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  List<Recipe> get visibleRecipes {
+    final query = searchText.trim().toLowerCase();
     final filteredRecipes = widget.recipes.where((recipe) {
+      final recipeCategory = recipe.category.trim();
       final matchesCategory =
-          selectedCategory == 'All' || recipe.category == selectedCategory;
-      final query = searchText.trim().toLowerCase();
-      final matchesSearch = query.isEmpty ||
+          activeCategory == 'All' ||
+          recipeCategory.toLowerCase() == activeCategory.toLowerCase();
+      final searchableIngredients = recipe.ingredients.join(' ');
+      final matchesSearch =
+          query.isEmpty ||
           recipe.title.toLowerCase().contains(query) ||
-          recipe.category.toLowerCase().contains(query);
+          recipeCategory.toLowerCase().contains(query) ||
+          searchableIngredients.toLowerCase().contains(query);
       return matchesCategory && matchesSearch;
     }).toList();
+
+    filteredRecipes.sort(_compareRecipes);
+    return filteredRecipes;
+  }
+
+  int _compareRecipes(Recipe first, Recipe second) {
+    switch (selectedSort) {
+      case 'Highest Rated':
+        final ratingComparison = _ratingValue(
+          second.rating,
+        ).compareTo(_ratingValue(first.rating));
+        if (ratingComparison != 0) return ratingComparison;
+        return _compareTitles(first, second);
+      case 'A-Z':
+        return _compareTitles(first, second);
+      case 'Newest':
+      default:
+        final firstDate = first.createdAt;
+        final secondDate = second.createdAt;
+        if (firstDate == null && secondDate == null) {
+          return _compareTitles(first, second);
+        }
+        if (firstDate == null) return 1;
+        if (secondDate == null) return -1;
+        final dateComparison = secondDate.compareTo(firstDate);
+        return dateComparison == 0
+            ? _compareTitles(first, second)
+            : dateComparison;
+    }
+  }
+
+  int _compareTitles(Recipe first, Recipe second) {
+    return first.title.trim().toLowerCase().compareTo(
+      second.title.trim().toLowerCase(),
+    );
+  }
+
+  double _ratingValue(String rating) {
+    return double.tryParse(rating.trim()) ?? 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredRecipes = visibleRecipes;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -72,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 48,
                     width: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Icon(Icons.notifications_none, size: 25),
@@ -85,18 +152,39 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Container(
                 height: 50,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
+                  controller: searchController,
                   onChanged: (value) {
                     setState(() {
                       searchText = value;
                     });
                   },
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Search any recipes',
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    suffixIcon: searchText.trim().isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Clear search',
+                            icon: Icon(
+                              Icons.clear,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                            onPressed: () {
+                              searchController.clear();
+                              setState(() {
+                                searchText = '';
+                              });
+                            },
+                          ),
                     border: InputBorder.none,
                   ),
                 ),
@@ -190,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 itemCount: categories.length,
                 itemBuilder: (context, index) {
-                  final isSelected = selectedCategory == categories[index];
+                  final isSelected = activeCategory == categories[index];
                   return GestureDetector(
                     onTap: () {
                       setState(() {
@@ -203,14 +291,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? const Color(0xFF4FA58C)
-                            : Colors.white,
+                            : Theme.of(context).colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       alignment: Alignment.center,
                       child: Text(
                         categories[index],
                         style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.black87,
+                          color: isSelected
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -226,14 +316,31 @@ class _HomeScreenState extends State<HomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Quick & Easy',
+                    'Recipes',
                     style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
                   ),
-                  Text(
-                    'View all',
-                    style: const TextStyle(
-                      color: Color(0xFF4FA58C),
-                      fontWeight: FontWeight.w500,
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedSort,
+                      icon: const Icon(Icons.unfold_more, size: 18),
+                      style: const TextStyle(
+                        color: Color(0xFF4FA58C),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      items: sortOptions
+                          .map(
+                            (sort) => DropdownMenuItem<String>(
+                              value: sort,
+                              child: Text(sort),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (sort) {
+                        if (sort == null) return;
+                        setState(() {
+                          selectedSort = sort;
+                        });
+                      },
                     ),
                   ),
                 ],
@@ -254,6 +361,11 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Try another search or category.',
+                        style: TextStyle(color: Colors.grey),
                       ),
                     ],
                   ),

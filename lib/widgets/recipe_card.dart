@@ -27,6 +27,7 @@ class RecipeCard extends StatelessWidget {
       onTap: onTap,
       child: SizedBox(
         width: 170,
+        height: 290,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -36,7 +37,7 @@ class RecipeCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(13),
                 child: Container(
-                  color: const Color(0xFFE8F3EE),
+                  color: Theme.of(context).colorScheme.surfaceContainerLow,
                   child: Stack(
                     children: [
                       Positioned.fill(
@@ -49,7 +50,9 @@ class RecipeCard extends StatelessWidget {
                           onTap: () => onFavoriteTap(!isFavorite),
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor: Colors.white,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surface,
                             child: Icon(
                               isFavorite
                                   ? Icons.favorite
@@ -67,7 +70,9 @@ class RecipeCard extends StatelessWidget {
                           onTap: () => onSavedTap(!isSaved),
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor: Colors.white,
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.surface,
                             child: Icon(
                               isSaved ? Icons.bookmark : Icons.bookmark_border,
                               color: isSaved
@@ -84,33 +89,80 @@ class RecipeCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 7),
-            Text(
-              recipe.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                recipe.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.2,
+                ),
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
+            Expanded(
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.bolt, size: 12, color: Colors.grey),
+                            const SizedBox(width: 2),
+                            Flexible(
+                              child: Text(
+                                recipe.category,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.access_time,
+                              size: 12,
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              recipe.time,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
             Row(
               children: [
-                const Icon(Icons.bolt, size: 14, color: Colors.grey),
-                const SizedBox(width: 2),
-                Flexible(
-                  child: Text(
-                    recipe.category,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4),
-                  child: Text('•', style: TextStyle(color: Colors.grey)),
-                ),
-                const Icon(Icons.access_time, size: 13, color: Colors.grey),
-                const SizedBox(width: 2),
+                const Icon(Icons.star, size: 13, color: Colors.amber),
+                const SizedBox(width: 3),
                 Text(
-                  recipe.time,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                  recipe.rating,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),

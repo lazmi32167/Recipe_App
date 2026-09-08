@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import '../models/recipe.dart';
 import '../services/recipe_service.dart';
 import '../services/user_recipe_service.dart';
+import '../widgets/app_confirm_dialog.dart';
+import '../widgets/app_empty_state.dart';
+import '../widgets/app_error_state.dart';
+import '../widgets/app_loading.dart';
 import '../widgets/recipe_card.dart';
 import 'edit_recipe_screen.dart';
-import 'favorite_screen.dart';
 import 'recipe_detail_page.dart';
 
 class MyRecipesScreen extends StatefulWidget {
@@ -25,21 +28,39 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      return const Scaffold(body: Center(child: Text('No user logged in')));
+      return Scaffold(
+        appBar: AppBar(title: const Text('My Recipes')),
+        body: const AppErrorState(
+          title: 'Not Logged In',
+          subtitle: 'Please log in to view your recipes.',
+        ),
+      );
     }
 
     return Scaffold(
       appBar: AppBar(title: const Text('My Recipes')),
       backgroundColor: const Color(0xFFF6F7F9),
-      body: StreamBuilder(
+      body: StreamBuilder<List<Recipe>>(
         stream: recipeService.getMyRecipes(user.uid),
         builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const AppLoading(message: 'Loading your recipes...');
+          }
+
+          if (snapshot.hasError) {
+            return AppErrorState(
+              title: 'Unable to Load Recipes',
+              subtitle: 'Please check your connection and try again.',
+              onRetry: () => setState(() {}),
+            );
+          }
+
           final recipes = snapshot.data ?? [];
           if (recipes.isEmpty) {
-            return const EmptyState(
+            return const AppEmptyState(
               icon: Icons.restaurant_menu,
-              title: 'No recipes added yet',
-              subtitle: 'Recipes you create will appear here.',
+              title: 'No Recipes Yet',
+              subtitle: 'Create your first recipe and share it with others.',
             );
           }
 
@@ -59,7 +80,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 15,
                           mainAxisSpacing: 18,
-                          childAspectRatio: 0.68,
+                          childAspectRatio: 0.75,
                         ),
                     itemBuilder: (context, index) {
                       final recipe = recipes[index];
@@ -149,42 +170,30 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
   }
 
   Future<void> _confirmDelete(BuildContext context, Recipe recipe) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Recipe?'),
-        content: const Text(
-          'Are you sure you want to delete this recipe? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await AppConfirmDialog.showDelete(
+      context,
+      title: 'Delete Recipe?',
+      subtitle: 'This action cannot be undone.',
+      itemName: recipe.title,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
+    if (!mounted) return;
     setState(() => deletingRecipeIds.add(recipe.id));
     try {
       await recipeService.deleteRecipe(recipe);
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          const SnackBar(content: Text('Recipe deleted successfully.')),
-        );
-      }
+      if (!mounted) return;
+      // Safe to use context here because we checked mounted
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Recipe deleted successfully.')),
+      );
     } catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to delete recipe.')),
-        );
-      }
+      if (!mounted) return;
+      // Safe to use context here because we checked mounted
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to delete recipe: $error')),
+      );
     } finally {
       if (mounted) setState(() => deletingRecipeIds.remove(recipe.id));
     }
