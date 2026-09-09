@@ -160,7 +160,31 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         'Serve hot.',
       ],
     ),
+    const Recipe(
+      id: 'legacy_french_fries',
+      title: 'Crispy French Fries',
+      category: 'Snacks',
+      time: '15 min',
+      rating: '4.7',
+      imagePath: 'assets/images/french_fries.jpg',
+      icon: Icons.fastfood,
+      description: 'Golden, crispy fries seasoned with paprika and sea salt.',
+      ingredients: ['Potatoes', 'Olive oil', 'Paprika', 'Salt', 'Black pepper'],
+      instructions: [
+        'Slice the potatoes into fries.',
+        'Soak them briefly in cold water.',
+        'Dry well and toss with oil and seasoning.',
+        'Bake or fry until golden and crisp.',
+        'Serve hot with your favorite dip.',
+      ],
+    ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    catalogService.ensureSeededRecipes(recipes);
+  }
 
   Future<void> toggleFavorite(Recipe recipe, bool shouldBeFavorite) async {
     try {
@@ -212,12 +236,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return StreamBuilder<List<Recipe>>(
       stream: catalogService.getRecipes(),
       builder: (context, catalogSnapshot) {
-        final firestoreRecipes = catalogSnapshot.data ?? <Recipe>[];
-        final recipesById = <String, Recipe>{
-          for (final recipe in recipes) recipe.id: recipe,
-          for (final recipe in firestoreRecipes) recipe.id: recipe,
-        };
-        final allRecipes = recipesById.values.toList();
+        // Keep the built-in recipes as a permanent fallback. Firestore data is
+        // additive; a loading/error/empty snapshot must never blank the Home feed.
+        final firestoreRecipes = catalogSnapshot.hasData
+            ? (catalogSnapshot.data ?? <Recipe>[])
+            : <Recipe>[];
+        final deduped = <String, Recipe>{};
+
+        for (final recipe in recipes) {
+          deduped[recipe.id] = recipe;
+        }
+        for (final recipe in firestoreRecipes) {
+          deduped[recipe.id] = recipe;
+        }
+
+        final allRecipes = deduped.values.toList(growable: false);
 
         return StreamBuilder<Set<String>>(
           stream: recipeService.recipeIdsStream('favorites'),

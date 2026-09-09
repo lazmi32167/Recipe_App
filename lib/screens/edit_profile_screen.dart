@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/account_service.dart';
 
@@ -14,6 +17,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final nameController = TextEditingController();
   final accountService = AccountService();
   bool isLoading = false;
+  final imagePicker = ImagePicker();
+  Uint8List? selectedImageBytes;
+  bool isUploadingImage = false;
 
   @override
   void initState() {
@@ -58,6 +64,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Future<void> pickProfileImage() async {
+    try {
+      final image = await imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (image == null) return;
+      final bytes = await image.readAsBytes();
+      setState(() {
+        selectedImageBytes = bytes;
+        isUploadingImage = true;
+      });
+      await accountService.uploadProfileImage(bytes);
+      _showMessage('Profile image updated.');
+    } on FirebaseException catch (error) {
+      debugPrint(
+        'PROFILE IMAGE FIREBASE ERROR: code=${error.code}, message=${error.message}',
+      );
+      _showMessage('Profile image upload failed: ${error.code}. Your profile was kept.');
+    } catch (error) {
+      debugPrint('Profile image upload error: $error');
+      _showMessage('Profile image upload failed. Your profile was kept.');
+    } finally {
+      if (mounted) setState(() => isUploadingImage = false);
+    }
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(
@@ -72,10 +102,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Icon(
-            Icons.person_outline,
-            size: 64,
-            color: Theme.of(context).colorScheme.primary,
+          GestureDetector(
+            onTap: isUploadingImage ? null : pickProfileImage,
+            child: CircleAvatar(
+              radius: 42,
+              backgroundImage: selectedImageBytes == null
+                  ? (FirebaseAuth.instance.currentUser?.photoURL != null
+                      ? NetworkImage(FirebaseAuth.instance.currentUser!.photoURL!)
+                      : null)
+                  : MemoryImage(selectedImageBytes!),
+              child: isUploadingImage
+                  ? const CircularProgressIndicator()
+                  : (selectedImageBytes == null &&
+                          FirebaseAuth.instance.currentUser?.photoURL == null
+                      ? Icon(Icons.person_outline, size: 52, color: Theme.of(context).colorScheme.primary)
+                      : null),
+            ),
           ),
           const SizedBox(height: 24),
           TextField(

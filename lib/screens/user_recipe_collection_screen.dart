@@ -105,7 +105,7 @@ class UserRecipeCollectionScreen extends StatelessWidget {
                             crossAxisCount: 2,
                             crossAxisSpacing: 15,
                             mainAxisSpacing: 18,
-                            childAspectRatio: 0.75,
+                            mainAxisExtent: 300,
                           ),
                       itemBuilder: (context, index) {
                         final recipe = storedRecipes[index];

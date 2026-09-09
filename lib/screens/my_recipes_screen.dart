@@ -80,7 +80,7 @@ class _MyRecipesScreenState extends State<MyRecipesScreen> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 15,
                           mainAxisSpacing: 18,
-                          childAspectRatio: 0.75,
+                          mainAxisExtent: 330,
                         ),
                     itemBuilder: (context, index) {
                       final recipe = recipes[index];

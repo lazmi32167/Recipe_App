@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Recipe {
+  static const List<String> categories = [
+    'Breakfast',
+    'Lunch',
+    'Dinner',
+    'Dessert',
+    'Snacks',
+  ];
+
   final String id;
   final String title;
   final String category;
@@ -12,6 +20,8 @@ class Recipe {
   final String description;
   final List<String> ingredients;
   final List<String> instructions;
+  final int calories;
+  final int baseServings;
   final String? createdBy;
   final String? createdByName;
   final DateTime? createdAt;
@@ -27,6 +37,8 @@ class Recipe {
     required this.description,
     required this.ingredients,
     required this.instructions,
+    this.calories = 0,
+    this.baseServings = 2,
     this.createdBy,
     this.createdByName,
     this.createdAt,
@@ -60,6 +72,8 @@ class Recipe {
       description: _stringValue(data['description']),
       ingredients: _stringList(data['ingredients']),
       instructions: _stringList(data['instructions']),
+      calories: _intValue(data['calories']),
+      baseServings: _positiveIntValue(data['baseServings'], fallback: 2),
       createdBy: _nullableString(data['createdBy']),
       createdByName: _nullableString(data['createdByName']),
       createdAt: _dateValue(data['createdAt']),
@@ -76,6 +90,8 @@ class Recipe {
       'description': description,
       'ingredients': ingredients,
       'instructions': instructions,
+      'calories': calories,
+      'baseServings': baseServings,
       if (createdBy != null) 'createdBy': createdBy,
       if (createdByName != null) 'createdByName': createdByName,
       if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
@@ -88,6 +104,13 @@ class Recipe {
 
   static String? _nullableString(Object? value) {
     return value is String && value.trim().isNotEmpty ? value : null;
+  }
+
+  static int _intValue(Object? value) => value is num ? value.toInt() : 0;
+
+  static int _positiveIntValue(Object? value, {required int fallback}) {
+    final parsed = _intValue(value);
+    return parsed > 0 ? parsed : fallback;
   }
 
   static List<String> _stringList(Object? value) {
@@ -119,6 +142,8 @@ class Recipe {
         return Icons.lunch_dining;
       case 'Dessert':
         return Icons.cake;
+      case 'Snacks':
+        return Icons.fastfood;
       case 'Dinner':
       default:
         return Icons.restaurant;

@@ -5,6 +5,7 @@ import '../services/account_service.dart';
 import '../services/theme_controller.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -97,10 +98,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Recipe App',
             subtitle: 'Version 1.0.0',
           ),
-          const _SettingsTile(
+          _SettingsTile(
             icon: Icons.info_outline,
             title: 'About',
             subtitle: 'Discover, save, and share recipes in one place.',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AboutScreen()),
+            ),
           ),
         ],
       ),

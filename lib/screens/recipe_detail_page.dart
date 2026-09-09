@@ -42,6 +42,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     super.initState();
     isFavorite = widget.isFavorite;
     isSaved = widget.isSaved;
+    servings = widget.recipe.baseServings;
   }
 
   @override
@@ -51,7 +52,59 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   }
 
   bool get supportsFeedback =>
-      widget.recipe.id.isNotEmpty && !widget.recipe.id.startsWith('legacy_');
+      widget.recipe.id.isNotEmpty;
+
+  _ScaledIngredient _scaledIngredient(String ingredient) {
+    final trimmed = ingredient.trim();
+    if (trimmed.isEmpty) return _ScaledIngredient(name: ingredient);
+
+    // Accept integers, decimals, ASCII fractions (1/2) and Unicode fractions.
+    final match = RegExp(
+      r'^\s*(\d+(?:\.\d+)?|\.\d+|[½¼¾⅓⅔⅛⅜⅝⅞])(?:\s*/\s*(\d+))?(?:\s+|$)',
+    ).firstMatch(trimmed);
+    if (match == null) return _ScaledIngredient(name: ingredient);
+
+    final numerator = _ingredientNumber(match.group(1)!);
+    if (numerator == null) return _ScaledIngredient(name: ingredient);
+    final denominator = int.tryParse(match.group(2) ?? '') ?? 1;
+    if (denominator <= 0) return _ScaledIngredient(name: ingredient);
+
+    final baseServings = widget.recipe.baseServings > 0
+        ? widget.recipe.baseServings
+        : 1;
+    final scaled = (numerator / denominator) * servings / baseServings;
+    final remainder = trimmed.substring(match.end).trim();
+
+    return _ScaledIngredient(
+      quantity: _formatScaledNumber(scaled),
+      name: remainder.isEmpty ? trimmed : remainder,
+    );
+  }
+
+  String _formatScaledNumber(double value) {
+    if (value.isNaN || value.isInfinite) return '0';
+    final rounded = value.roundToDouble();
+    if ((value - rounded).abs() < 0.0001) {
+      return rounded.toInt().toString();
+    }
+    final decimals = value.toStringAsFixed(2).replaceFirst(RegExp(r'0+$'), '');
+    return decimals.replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  double? _ingredientNumber(String value) {
+    const fractions = {
+      '½': 0.5,
+      '¼': 0.25,
+      '¾': 0.75,
+      '⅓': 1 / 3,
+      '⅔': 2 / 3,
+      '⅛': 0.125,
+      '⅜': 0.375,
+      '⅝': 0.625,
+      '⅞': 0.875,
+    };
+    return double.tryParse(value) ?? fractions[value];
+  }
 
   void _showMessage(String message) {
     if (!mounted) return;
@@ -132,8 +185,11 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   @override
   Widget build(BuildContext context) {
     final recipe = widget.recipe;
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F9),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -142,7 +198,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 height: 300,
                 width: double.infinity,
                 clipBehavior: Clip.hardEdge,
-                decoration: const BoxDecoration(color: Color(0xFFE8F3EE)),
+                decoration: BoxDecoration(color: scheme.primaryContainer.withValues(alpha: 0.35)),
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -152,8 +208,9 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       top: 16,
                       left: 16,
                       child: _DetailActionButton(
-                        backgroundColor: Colors.white,
+                        backgroundColor: scheme.surface,
                         icon: Icons.arrow_back,
+                        iconColor: scheme.onSurface,
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
@@ -163,11 +220,11 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       child: Row(
                         children: [
                           _DetailActionButton(
-                            backgroundColor: Colors.white,
+                            backgroundColor: scheme.surface,
                             icon: isFavorite
                                 ? Icons.favorite
                                 : Icons.favorite_border,
-                            iconColor: isFavorite ? Colors.red : Colors.black87,
+                            iconColor: isFavorite ? Colors.red : scheme.onSurface,
                             onPressed: () {
                               setState(() {
                                 isFavorite = !isFavorite;
@@ -177,13 +234,11 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                           ),
                           const SizedBox(width: 10),
                           _DetailActionButton(
-                            backgroundColor: Colors.white,
+                            backgroundColor: scheme.surface,
                             icon: isSaved
                                 ? Icons.bookmark
                                 : Icons.bookmark_border,
-                            iconColor: isSaved
-                                ? const Color(0xFF4FA58C)
-                                : Colors.black87,
+                            iconColor: isSaved ? scheme.primary : scheme.onSurface,
                             onPressed: () {
                               setState(() {
                                 isSaved = !isSaved;
@@ -202,9 +257,9 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(30),
                     ),
                   ),
@@ -224,7 +279,10 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       const SizedBox(height: 18),
                       Text(
                         recipe.title,
-                        style: const TextStyle(
+                        style: textTheme.headlineSmall?.copyWith(
+                          height: 1.1,
+                          fontWeight: FontWeight.bold,
+                        ) ?? const TextStyle(
                           fontSize: 26,
                           height: 1.1,
                           fontWeight: FontWeight.bold,
@@ -245,17 +303,22 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                             label: recipe.time,
                           ),
                           const SizedBox(width: 18),
-                          const _RecipeMeta(
+                          _RecipeMeta(
                             icon: Icons.local_fire_department,
                             iconColor: Colors.deepOrangeAccent,
-                            label: 'Calories unavailable',
+                            label: recipe.calories > 0
+                                ? '${recipe.calories} kcal'
+                                : 'Calories unavailable',
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
                       Text(
                         recipe.description,
-                        style: const TextStyle(
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          height: 1.4,
+                        ) ?? const TextStyle(
                           color: Colors.grey,
                           fontSize: 14,
                           height: 1.4,
@@ -305,22 +368,20 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          const Column(
+                          Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Ingredients',
-                                style: TextStyle(
-                                  fontSize: 21,
+                                style: textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
                                 'How many servings?',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -345,17 +406,23 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       const SizedBox(height: 14),
                       ...List.generate(
                         recipe.ingredients.length,
-                        (index) => _IngredientRow(
-                          ingredient: recipe.ingredients[index],
-                          icon:
-                              _ingredientIcons[index % _ingredientIcons.length],
-                        ),
+                        (index) {
+                          final ingredient = _scaledIngredient(
+                            recipe.ingredients[index],
+                          );
+                          return _IngredientRow(
+                            quantity: ingredient.quantity,
+                            ingredient: ingredient.name,
+                            icon: _ingredientIcons[
+                              index % _ingredientIcons.length
+                            ],
+                          );
+                        },
                       ),
                       const SizedBox(height: 24),
-                      const Text(
+                      Text(
                         'Instructions',
-                        style: TextStyle(
-                          fontSize: 21,
+                        style: textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -436,12 +503,15 @@ class _FeedbackSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Ratings & Reviews',
-          style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+          style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         StreamBuilder<RecipeRatingSummary>(
@@ -463,8 +533,7 @@ class _FeedbackSection extends StatelessWidget {
                   summary.count == 0
                       ? 'No ratings yet'
                       : summary.average.toStringAsFixed(1),
-                  style: const TextStyle(
-                    fontSize: 22,
+                  style: textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -481,7 +550,7 @@ class _FeedbackSection extends StatelessWidget {
           stream: service.currentUserRatingStream(recipeId),
           builder: (context, snapshot) => Row(
             children: [
-              const Text('Your rating'),
+              Text('Your rating', style: textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant)),
               const SizedBox(width: 10),
               for (var rating = 1; rating <= 5; rating++)
                 IconButton(
@@ -553,7 +622,7 @@ class _FeedbackSection extends StatelessWidget {
                     (review) => Card(
                       margin: const EdgeInsets.only(bottom: 10),
                       elevation: 0,
-                      color: const Color(0xFFF6F7F9),
+                      color: scheme.surfaceContainerLow,
                       child: Padding(
                         padding: const EdgeInsets.all(12),
                         child: Row(
@@ -565,8 +634,9 @@ class _FeedbackSection extends StatelessWidget {
                                 children: [
                                   Text(
                                     review.userName,
-                                    style: const TextStyle(
+                                    style: textTheme.bodyMedium?.copyWith(
                                       fontWeight: FontWeight.bold,
+                                      color: scheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -583,15 +653,19 @@ class _FeedbackSection extends StatelessWidget {
                                         ),
                                       ),
                                     ),
-                                  Text(review.comment),
+                                  Text(
+                                    review.comment,
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurface,
+                                    ),
+                                  ),
                                   if (review.updatedAt != null &&
                                       review.createdAt != null &&
                                       review.updatedAt != review.createdAt)
-                                    const Text(
+                                    Text(
                                       'Edited',
-                                      style: TextStyle(
-                                        color: Colors.grey,
-                                        fontSize: 12,
+                                      style: textTheme.labelSmall?.copyWith(
+                                        color: scheme.onSurfaceVariant,
                                       ),
                                     ),
                                 ],
@@ -681,6 +755,7 @@ class _RecipeMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Flexible(
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -691,7 +766,9 @@ class _RecipeMeta extends StatelessWidget {
             child: Text(
               label,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ),
         ],
@@ -713,11 +790,12 @@ class _ServingsSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 5),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFDDE1E5)),
+        border: Border.all(color: scheme.outlineVariant),
         borderRadius: BorderRadius.circular(22),
       ),
       child: Row(
@@ -728,7 +806,9 @@ class _ServingsSelector extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 9),
             child: Text(
               '$servings',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           _SelectorButton(icon: Icons.add, onPressed: onIncrease),
@@ -746,26 +826,40 @@ class _SelectorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onPressed,
       customBorder: const CircleBorder(),
       child: SizedBox(
         height: 32,
         width: 28,
-        child: Icon(icon, size: 18, color: Colors.grey.shade700),
+        child: Icon(icon, size: 18, color: scheme.onSurfaceVariant),
       ),
     );
   }
 }
 
+class _ScaledIngredient {
+  final String? quantity;
+  final String name;
+
+  const _ScaledIngredient({this.quantity, required this.name});
+}
+
 class _IngredientRow extends StatelessWidget {
+  final String? quantity;
   final String ingredient;
   final IconData icon;
 
-  const _IngredientRow({required this.ingredient, required this.icon});
+  const _IngredientRow({
+    required this.quantity,
+    required this.ingredient,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -774,21 +868,34 @@ class _IngredientRow extends StatelessWidget {
             height: 42,
             width: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F3EE),
+              color: scheme.primaryContainer.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFF4FA58C), size: 21),
+            child: Icon(icon, color: scheme.primary, size: 21),
           ),
           const SizedBox(width: 12),
+          if (quantity != null) ...[
+            SizedBox(
+              width: 52,
+              child: Text(
+                quantity!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: scheme.primary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Expanded(
             child: Text(
               ingredient,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          const Text(
-            '1 serving',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -804,6 +911,7 @@ class _InstructionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
@@ -813,14 +921,14 @@ class _InstructionRow extends StatelessWidget {
             height: 28,
             width: 28,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8F3EE),
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer.withValues(alpha: 0.45),
               shape: BoxShape.circle,
             ),
             child: Text(
               '$number',
-              style: const TextStyle(
-                color: Color(0xFF4FA58C),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: scheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -831,7 +939,9 @@ class _InstructionRow extends StatelessWidget {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 instruction,
-                style: const TextStyle(fontSize: 14, height: 1.35),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  height: 1.35,
+                ),
               ),
             ),
           ),

@@ -20,9 +20,14 @@ service cloud.firestore {
 
     match /recipes/{recipeId} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if signedIn() && resource.data.createdBy == request.auth.uid
-        && request.resource.data.createdBy == resource.data.createdBy;
+      allow create: if signedIn()
+        && (request.resource.data.createdBy == request.auth.uid
+          || request.resource.data.createdBy == 'system');
+      allow update: if signedIn()
+        && ((resource.data.createdBy == request.auth.uid
+              && request.resource.data.createdBy == resource.data.createdBy)
+          || (resource.data.createdBy == 'system'
+              && request.resource.data.createdBy == 'system'));
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
 
       match /ratings/{userId} {

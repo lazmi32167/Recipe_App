@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 
 class AccountService {
   AccountService({FirebaseAuth? auth, FirebaseFirestore? firestore})
@@ -8,6 +10,43 @@ class AccountService {
 
   final FirebaseAuth _auth;
   final FirebaseFirestore _firestore;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  Future<String> uploadProfileImage(Uint8List bytes) async {
+    final user = _requireUser();
+    if (bytes.isEmpty) throw StateError('The selected image is empty or invalid.');
+    final reference = _storage
+        .ref()
+        .child('profiles')
+        .child(user.uid)
+        .child('avatar-${DateTime.now().millisecondsSinceEpoch}.jpg');
+    debugPrint('PROFILE IMAGE: authenticated uid=${user.uid}');
+    debugPrint('PROFILE IMAGE: storage bucket=${_storage.bucket}');
+    debugPrint('PROFILE IMAGE: upload path=${reference.fullPath}');
+    debugPrint('PROFILE IMAGE: upload starting');
+    final snapshot = await reference.putData(
+      bytes,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    debugPrint('PROFILE IMAGE: upload completed state=${snapshot.state}');
+    if (snapshot.state != TaskState.success) {
+      throw FirebaseException(
+        plugin: 'firebase_storage',
+        code: 'upload-failed',
+        message: 'Profile image upload did not complete successfully.',
+      );
+    }
+    debugPrint('PROFILE IMAGE: getDownloadURL starting from uploaded snapshot ref');
+    final url = await snapshot.ref.getDownloadURL();
+    debugPrint('PROFILE IMAGE: getDownloadURL completed');
+    await user.updatePhotoURL(url);
+    await _firestore.collection('users').doc(user.uid).set(
+      {'photoUrl': url},
+      SetOptions(merge: true),
+    );
+    debugPrint('PROFILE IMAGE: users/${user.uid}.photoUrl persisted');
+    return url;
+  }
 
   Future<void> updateProfileName(String name) async {
     final user = _requireUser();

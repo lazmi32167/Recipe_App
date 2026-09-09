@@ -20,8 +20,19 @@ class RecipeService {
       _firestore.collection('recipes');
 
   Stream<List<Recipe>> getRecipes() {
+    // A single malformed Firestore document must never make the whole Home
+    // catalog disappear. Parse documents independently and keep valid ones.
     return _recipes.snapshots().map((snapshot) {
-      final recipes = snapshot.docs.map(Recipe.fromFirestore).toList();
+      final recipes = <Recipe>[];
+      for (final document in snapshot.docs) {
+        try {
+          recipes.add(Recipe.fromFirestore(document));
+        } catch (error, stackTrace) {
+          debugPrint(
+            'Skipping invalid recipe document ${document.id}: $error\n$stackTrace',
+          );
+        }
+      }
       recipes.sort(_compareByDate);
       return recipes;
     });
@@ -37,6 +48,39 @@ class RecipeService {
     });
   }
 
+  Future<void> seedDemoRecipes(List<Recipe> recipes) async {
+    if (recipes.isEmpty) return;
+    final batch = _firestore.batch();
+    for (final recipe in recipes) {
+      final reference = _recipes.doc(recipe.id);
+      batch.set(reference, {
+        ...recipe.toMap(),
+        'calories': recipe.calories > 0 ? recipe.calories : 350,
+        'baseServings': recipe.baseServings > 0 ? recipe.baseServings : 2,
+        'createdBy': 'system',
+        'createdByName': 'Recipe App',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: false));
+    }
+    try {
+      await batch.commit();
+      debugPrint('Demo recipe seed completed: ${recipes.length} recipes');
+    } on FirebaseException catch (error, stackTrace) {
+      debugPrint('Demo recipe seed failed: ${error.code} - ${error.message}\n$stackTrace');
+    }
+  }
+
+  Future<void> ensureSeededRecipes(List<Recipe> recipes) async {
+    if (recipes.isEmpty) return;
+    try {
+      final snapshot = await _recipes.limit(1).get();
+      if (snapshot.docs.isNotEmpty) return;
+      await seedDemoRecipes(recipes);
+    } catch (error, stackTrace) {
+      debugPrint('Demo recipe check failed: $error\n$stackTrace');
+    }
+  }
+
   Future<String> addRecipe({
     required String title,
     required String category,
@@ -45,6 +89,8 @@ class RecipeService {
     required List<String> ingredients,
     required List<String> instructions,
     required String createdByName,
+    required int calories,
+    required int baseServings,
     String? imagePath,
   }) async {
     final user = _auth.currentUser;
@@ -62,6 +108,8 @@ class RecipeService {
       'description': description.trim(),
       'ingredients': ingredients,
       'instructions': instructions,
+      'calories': calories,
+      'baseServings': baseServings,
       'createdBy': user.uid,
       'createdByName': createdByName.trim().isEmpty
           ? 'Anonymous User'
@@ -131,6 +179,8 @@ class RecipeService {
     required String description,
     required List<String> ingredients,
     required List<String> instructions,
+    required int calories,
+    required int baseServings,
     String? imagePath,
   }) async {
     final user = _auth.currentUser;
@@ -148,6 +198,8 @@ class RecipeService {
       'description': description.trim(),
       'ingredients': ingredients,
       'instructions': instructions,
+      'calories': calories,
+      'baseServings': baseServings,
       'updatedAt': FieldValue.serverTimestamp(),
     };
     if (imagePath != null) {
@@ -199,6 +251,8 @@ class RecipeService {
         description: recipe.description,
         ingredients: recipe.ingredients,
         instructions: recipe.instructions,
+        calories: recipe.calories,
+        baseServings: recipe.baseServings,
         imagePath: imagePath,
       );
     } catch (_) {

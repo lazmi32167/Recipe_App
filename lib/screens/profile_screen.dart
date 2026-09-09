@@ -44,12 +44,14 @@ class ProfileScreen extends StatelessWidget {
         builder: (context, snapshot) {
           String name = user.displayName ?? 'Recipe Lover';
           String email = user.email ?? '';
+          String? photoUrl = user.photoURL;
 
           if (snapshot.hasData && snapshot.data!.exists) {
             final data = snapshot.data!.data() as Map<String, dynamic>;
 
             name = data['name'] ?? name;
             email = data['email'] ?? email;
+            photoUrl = data['photoUrl'] as String? ?? photoUrl;
           }
 
           return StreamBuilder<int>(
@@ -65,14 +67,17 @@ class ProfileScreen extends StatelessWidget {
                         const SizedBox(height: 20),
                         CircleAvatar(
                           radius: 55,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer,
-                          child: Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                          backgroundImage: photoUrl == null
+                              ? null
+                              : NetworkImage(photoUrl),
+                          child: photoUrl == null
+                              ? Icon(
+                                  Icons.person,
+                                  size: 60,
+                                  color: Theme.of(context).colorScheme.primary,
+                                )
+                              : null,
                         ),
                         const SizedBox(height: 18),
                         Text(

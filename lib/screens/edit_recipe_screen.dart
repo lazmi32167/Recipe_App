@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,6 +22,8 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   late final TextEditingController descriptionController;
   late final TextEditingController ingredientsController;
   late final TextEditingController instructionsController;
+  late final TextEditingController caloriesController;
+  late final TextEditingController servingsController;
   final recipeService = RecipeService();
   final imagePicker = ImagePicker();
   late String? category;
@@ -29,7 +32,7 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
   bool isSaving = false;
 
   List<String> get categories {
-    final values = ['Breakfast', 'Lunch', 'Dinner', 'Dessert'];
+    final values = List<String>.from(Recipe.categories);
     if (category != null && !values.contains(category)) {
       values.add(category!);
     }
@@ -49,6 +52,8 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     instructionsController = TextEditingController(
       text: recipe.instructions.join('\n'),
     );
+    caloriesController = TextEditingController(text: '${recipe.calories}');
+    servingsController = TextEditingController(text: '${recipe.baseServings}');
     category = recipe.category;
   }
 
@@ -59,6 +64,8 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     descriptionController.dispose();
     ingredientsController.dispose();
     instructionsController.dispose();
+    caloriesController.dispose();
+    servingsController.dispose();
     super.dispose();
   }
 
@@ -70,16 +77,27 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
         timeController.text.trim().isEmpty ||
         descriptionController.text.trim().isEmpty ||
         ingredients.isEmpty ||
-        instructions.isEmpty) {
+        instructions.isEmpty ||
+        (int.tryParse(caloriesController.text.trim()) ?? 0) < 0 ||
+        (int.tryParse(servingsController.text.trim()) ?? 0) < 1) {
       _showMessage('Please complete every recipe field.');
       return;
     }
 
     setState(() => isSaving = true);
     try {
-      final imagePath = selectedImage == null
-          ? null
-          : await recipeService.uploadRecipeImage(selectedImage!);
+      String? imagePath;
+      if (selectedImage != null) {
+        try {
+          imagePath = await recipeService.uploadRecipeImage(selectedImage!);
+        } on FirebaseException catch (error, stackTrace) {
+          debugPrint('RECIPE UPDATE STORAGE WARNING: ${error.code} - ${error.message}\n$stackTrace');
+          _showMessage('Image upload failed; the existing image was kept.');
+        } catch (error, stackTrace) {
+          debugPrint('RECIPE UPDATE STORAGE WARNING: $error\n$stackTrace');
+          _showMessage('Image upload failed; the existing image was kept.');
+        }
+      }
       await recipeService.updateRecipe(
         recipe: widget.recipe,
         title: titleController.text,
@@ -88,6 +106,8 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
         description: descriptionController.text,
         ingredients: ingredients,
         instructions: instructions,
+        calories: int.parse(caloriesController.text.trim()),
+        baseServings: int.parse(servingsController.text.trim()),
         imagePath: imagePath,
       );
       if (!mounted) return;
@@ -189,6 +209,18 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
             const SizedBox(height: 14),
             _field(descriptionController, 'Description', maxLines: 3),
             const SizedBox(height: 14),
+            _field(
+              caloriesController,
+              'Calories (kcal)',
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 14),
+            _field(
+              servingsController,
+              'Base servings',
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 14),
             _field(ingredientsController, 'Ingredients (one per line)', maxLines: 5),
             const SizedBox(height: 14),
             _field(instructionsController, 'Instructions (one step per line)', maxLines: 7),
@@ -213,10 +245,16 @@ class _EditRecipeScreenState extends State<EditRecipeScreen> {
     );
   }
 
-  Widget _field(TextEditingController controller, String label, {int maxLines = 1}) {
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: keyboardType,
       decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
     );
   }

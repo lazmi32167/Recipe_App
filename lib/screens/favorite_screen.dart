@@ -54,7 +54,7 @@ class FavoriteScreen extends StatelessWidget {
                           crossAxisCount: 2,
                           crossAxisSpacing: 15,
                           mainAxisSpacing: 18,
-                          childAspectRatio: 0.68,
+                          mainAxisExtent: 330,
                         ),
                     itemBuilder: (context, index) {
                       final recipe = recipes[index];
